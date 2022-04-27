@@ -1,8 +1,6 @@
-/**
- *Submitted for verification at Etherscan.io on 2022-04-11
-*/
+// SPDX-License-Identifier: MIT
 
-pragma solidity 0.4.24;
+pragma solidity ^0.8.0;
 
 library SafeMath {
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -22,13 +20,13 @@ library SafeMath {
     }
 
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        assert(b <= a);
+        require(b <= a, "a should not less than b");
         return a - b;
     }
 
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
-        assert(c >= a);
+        require(c >= a, "a should not greater than c");
         return c;
     }
 }
@@ -49,7 +47,7 @@ contract Ownable {
     * @dev The Ownable constructor sets the original `owner` of the contract to the sender
     * account.
     */
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 
@@ -57,7 +55,7 @@ contract Ownable {
     * @dev Throws if called by any account other than the owner.
     */
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "This is not a owner!");
         _;
     }
 
@@ -65,8 +63,8 @@ contract Ownable {
     * @dev Allows the current owner to transfer control of the contract to a newOwner.
     * @param newOwner The address to transfer ownership to.
     */
-    function transferOwnership(address newOwner) public onlyOwner {
-        require(newOwner != address(0));
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Please add the different owner address!");
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
@@ -75,10 +73,10 @@ contract Ownable {
 /**
  * @title ERC20Basic
  */
-contract ERC20Basic {
+abstract contract ERC20Basic {
     uint256 public totalSupply;
-    function balanceOf(address who) public view returns (uint256);
-    function transfer(address to, uint256 value) public returns (bool);
+    function balanceOf(address who) public virtual view returns (uint256);
+    function transfer(address to, uint256 value) public virtual returns (bool);
     event Transfer(address indexed from, address indexed to, uint256 value);
 }
 
@@ -86,10 +84,10 @@ contract ERC20Basic {
  * @title ERC20 interface
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
-contract ERC20 is ERC20Basic {
-    function allowance(address owner, address spender) public view returns (uint256);
-    function transferFrom(address from, address to, uint256 value) public returns (bool);
-    function approve(address spender, uint256 value) public returns (bool);
+abstract contract ERC20 is ERC20Basic {
+    function allowance(address owner, address spender) external virtual view returns (uint256);
+    function transferFrom(address from, address to, uint256 value) external virtual returns (bool);
+    function approve(address spender, uint256 value) external virtual returns (bool);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
@@ -101,16 +99,16 @@ contract BasicToken is ERC20Basic, Ownable {
 
     using SafeMath for uint256;
 
-    mapping(address => uint256) balances;
+    mapping(address => uint256) public balances;
 
     /**
     * @dev transfer token for a specified address
     * @param _to The address to transfer to.
     * @param _value The amount to be transferred.
     */
-    function transfer(address _to, uint256 _value) public returns (bool) {
-        require(_to != address(0));
-        require(_value <= balanceOf(msg.sender));
+    function transfer(address _to, uint256 _value) public override returns (bool) {
+        require(_to != address(0), "Address should not a owner address!");
+        require(_value <= balanceOf(msg.sender), "Insufficient balance!");
 
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
@@ -121,10 +119,9 @@ contract BasicToken is ERC20Basic, Ownable {
 
     /**
     * @dev Gets the balance of the specified address.
-    * @param _owner The address to query the the balance of. 
-    * @return An uint256 representing the amount owned by the passed address.
+    * @param _owner The address to query the the balance of.
     */
-    function balanceOf(address _owner) public view returns (uint256 balance) {
+    function balanceOf(address _owner) public override view returns (uint256 balance) {
         return balances[_owner];
     }
     
@@ -140,7 +137,9 @@ contract BasicToken is ERC20Basic, Ownable {
  */
 contract StandardToken is ERC20, BasicToken {
 
-    mapping (address => mapping (address => uint256)) allowed;
+    using SafeMath for uint256;
+
+    mapping (address => mapping (address => uint256)) public allowed;
 
     /**
     * @dev Transfer tokens from one address to another
@@ -148,11 +147,11 @@ contract StandardToken is ERC20, BasicToken {
     * @param _to address The address which you want to transfer to
     * @param _value uint256 the amount of tokens to be transferred
     */
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
-        require(_to != address(0));
-        require(allowed[_from][msg.sender] >= _value);
-        require(balanceOf(_from) >= _value);
-        require(balances[_to].add(_value) > balances[_to]); // Check for overflows
+    function transferFrom(address _from, address _to, uint256 _value) external override returns (bool) {
+        require(_to != address(0), "Address should not a owner address!");
+        require(allowed[_from][msg.sender] >= _value, "Value is not allowed!");
+        require(balanceOf(_from) >= _value, "Insufficient Balance!");
+        require(balances[_to].add(_value) > balances[_to], "Overflows Balance!"); // Check for overflows
         balances[_from] = balances[_from].sub(_value);
         balances[_to] = balances[_to].add(_value);
         allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
@@ -165,12 +164,12 @@ contract StandardToken is ERC20, BasicToken {
     * @param _spender The address which will spend the funds.
     * @param _value The amount of tokens to be spent.
     */
-    function approve(address _spender, uint256 _value) public returns (bool) {
+    function approve(address _spender, uint256 _value) external override returns (bool) {
         // To change the approve amount you first have to reduce the addresses`
         //  allowance to zero by calling `approve(_spender, 0)` if it is not
         //  already 0 to mitigate the race condition described here:
         //  https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-        require((_value == 0) || (allowed[msg.sender][_spender] == 0));
+        require((_value == 0) || (allowed[msg.sender][_spender] == 0), "Value should be equal to 0!");
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
@@ -180,9 +179,8 @@ contract StandardToken is ERC20, BasicToken {
     * @dev Function to check the amount of tokens that an owner allowed to a spender.
     * @param _owner address The address which owns the funds.
     * @param _spender address The address which will spend the funds.
-    * @return A uint256 specifying the amount of tokens still available for the spender.
     */
-    function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
+    function allowance(address _owner, address _spender) external override view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }
 
@@ -192,13 +190,13 @@ contract StandardToken is ERC20, BasicToken {
     * the first transaction is mined)
     * From MonolithDAO Token.sol
     */
-    function increaseApproval (address _spender, uint _addedValue) public returns (bool success) {
+    function increaseApproval (address _spender, uint _addedValue) external returns (bool success) {
         allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
-    function decreaseApproval (address _spender, uint _subtractedValue) public returns (bool success) {
+    function decreaseApproval (address _spender, uint _subtractedValue) external returns (bool success) {
         uint oldValue = allowed[msg.sender][_spender];
         if (_subtractedValue > oldValue) {
             allowed[msg.sender][_spender] = 0;
@@ -210,7 +208,7 @@ contract StandardToken is ERC20, BasicToken {
     }
 }
 
-contract ERC1132 {
+abstract contract ERC1132 {
     /**
      * @dev Reasons why a user's tokens have been locked
      */
@@ -258,7 +256,7 @@ contract ERC1132 {
      * @param _time Lock time in seconds
      */
     function lock(bytes32 _reason, uint256 _amount, uint256 _time)
-        public returns (bool);
+        external virtual returns (bool);
   
     /**
      * @dev Returns tokens locked for a specified address for a
@@ -268,7 +266,7 @@ contract ERC1132 {
      * @param _reason The reason to query the lock tokens for
      */
     function tokensLocked(address _of, bytes32 _reason)
-        public view returns (uint256 amount);
+        public virtual view returns (uint256 amount);
     
     /**
      * @dev Returns tokens locked for a specified address for a
@@ -279,14 +277,14 @@ contract ERC1132 {
      * @param _time The timestamp to query the lock tokens for
      */
     function tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time)
-        public view returns (uint256 amount);
+        external virtual view returns (uint256 amount);
     
     /**
      * @dev Returns total tokens held by an address (locked + transferable)
      * @param _of The address to query the total balance of
      */
     function totalBalanceOf(address _of)
-        public view returns (uint256 amount);
+        external virtual view returns (uint256 amount);
     
     /**
      * @dev Extends lock for a specified reason and time
@@ -294,7 +292,7 @@ contract ERC1132 {
      * @param _time Lock extension time in seconds
      */
     function extendLock(bytes32 _reason, uint256 _time)
-        public returns (bool);
+        external virtual returns (bool);
     
     /**
      * @dev Increase number of tokens locked for a specified reason
@@ -302,7 +300,7 @@ contract ERC1132 {
      * @param _amount Number of tokens to be increased
      */
     function increaseLockAmount(bytes32 _reason, uint256 _amount)
-        public returns (bool);
+        external virtual returns (bool);
 
     /**
      * @dev Returns unlockable tokens for a specified address for a specified reason
@@ -310,26 +308,28 @@ contract ERC1132 {
      * @param _reason The reason to query the unlockable tokens for
      */
     function tokensUnlockable(address _of, bytes32 _reason)
-        public view returns (uint256 amount);
+        public virtual view returns (uint256 amount);
  
     /**
      * @dev Unlocks the unlockable tokens of a specified address
      * @param _of Address of user, claiming back unlockable tokens
      */
     function unlock(address _of)
-        public returns (uint256 unlockableTokens);
+        external virtual returns (uint256 unlockableTokens);
 
     /**
      * @dev Gets the unlockable tokens of a specified address
      * @param _of The address to query the the unlockable token count of
      */
     function getUnlockableTokens(address _of)
-        public view returns (uint256 unlockableTokens);
+        external virtual view returns (uint256 unlockableTokens);
 
 }
 
 
 contract LockableToken is ERC1132, StandardToken {
+
+    using SafeMath for uint256;
 
    /**
     * @dev Error messages for require statements
@@ -344,9 +344,8 @@ contract LockableToken is ERC1132, StandardToken {
 
    /**
     * @dev constructor to mint initial tokens
-    * Shall update to _mint once openzepplin updates their npm package.
     */
-    constructor() public {
+    constructor() {
         name = "Metarix";
         symbol = "META";
         decimals = 9;
@@ -363,10 +362,14 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _time Lock time in seconds
      */
     function lock(bytes32 _reason, uint256 _amount, uint256 _time)
-        public
+        external
+        override
         returns (bool)
     {
-        uint256 validUntil = now.add(_time); //solhint-disable-line
+        uint256 nextYear = block.timestamp + 31536000;
+        require(_time <= nextYear, "Time should not greater than next 1 year!");
+        
+        uint256 validUntil = block.timestamp.add(_time); //solhint-disable-line
 
         // If tokens are already locked, then functions extendLock or
         // increaseLockAmount should be used to make any changes
@@ -387,16 +390,16 @@ contract LockableToken is ERC1132, StandardToken {
     /**
      * @dev Transfers and Locks a specified amount of tokens,
      *      for a specified reason and time
-     * @param _to adress to which tokens are to be transfered
+     * @param _to address to which tokens are to be transferred
      * @param _reason The reason to lock tokens
-     * @param _amount Number of tokens to be transfered and locked
+     * @param _amount Number of tokens to be transferred and locked
      * @param _time Lock time in seconds
      */
     function transferWithLock(address _to, bytes32 _reason, uint256 _amount, uint256 _time)
-        public
+        external
         returns (bool)
     {
-        uint256 validUntil = now.add(_time); //solhint-disable-line
+        uint256 validUntil = block.timestamp.add(_time); //solhint-disable-line
 
         require(tokensLocked(_to, _reason) == 0, ALREADY_LOCKED);
         require(_amount != 0, AMOUNT_ZERO);
@@ -421,6 +424,7 @@ contract LockableToken is ERC1132, StandardToken {
      */
     function tokensLocked(address _of, bytes32 _reason)
         public
+        override
         view
         returns (uint256 amount)
     {
@@ -437,7 +441,8 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _time The timestamp to query the lock tokens for
      */
     function tokensLockedAtTime(address _of, bytes32 _reason, uint256 _time)
-        public
+        external
+        override
         view
         returns (uint256 amount)
     {
@@ -450,7 +455,8 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _of The address to query the total balance of
      */
     function totalBalanceOf(address _of)
-        public
+        external
+        override
         view
         returns (uint256 amount)
     {
@@ -467,7 +473,8 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _time Lock extension time in seconds
      */
     function extendLock(bytes32 _reason, uint256 _time)
-        public
+        external
+        override
         returns (bool)
     {
         require(tokensLocked(msg.sender, _reason) > 0, NOT_LOCKED);
@@ -484,7 +491,8 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _amount Number of tokens to be increased
      */
     function increaseLockAmount(bytes32 _reason, uint256 _amount)
-        public
+        external
+        override
         returns (bool)
     {
         require(tokensLocked(msg.sender, _reason) > 0, NOT_LOCKED);
@@ -503,10 +511,11 @@ contract LockableToken is ERC1132, StandardToken {
      */
     function tokensUnlockable(address _of, bytes32 _reason)
         public
+        override
         view
         returns (uint256 amount)
     {
-        if (locked[_of][_reason].validity <= now && !locked[_of][_reason].claimed) //solhint-disable-line
+        if (locked[_of][_reason].validity <= block.timestamp && !locked[_of][_reason].claimed) //solhint-disable-line
             amount = locked[_of][_reason].amount;
     }
 
@@ -515,12 +524,18 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _of Address of user, claiming back unlockable tokens
      */
     function unlock(address _of)
-        public
+        external
+        override
         returns (uint256 unlockableTokens)
     {
         uint256 lockedTokens;
 
-        for (uint256 i = 0; i < lockReason[_of].length; i++) {
+        //for (uint256 i = 0; i < lockReason[_of].length; i++) {
+        uint256 maxLength = lockReason[_of].length;
+        if(maxLength>100){
+            maxLength = 100;
+        }
+        for (uint256 i = 0; i < maxLength; i++) {
             lockedTokens = tokensUnlockable(_of, lockReason[_of][i]);
             if (lockedTokens > 0) {
                 unlockableTokens = unlockableTokens.add(lockedTokens);
@@ -538,7 +553,8 @@ contract LockableToken is ERC1132, StandardToken {
      * @param _of The address to query the the unlockable token count of
      */
     function getUnlockableTokens(address _of)
-        public
+        external
+        override
         view
         returns (uint256 unlockableTokens)
     {
