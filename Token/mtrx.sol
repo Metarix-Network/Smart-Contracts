@@ -347,9 +347,9 @@ contract LockableToken is ERC1132, StandardToken {
     */
     constructor() {
         name = "Metarix";
-        symbol = "META";
+        symbol = "MTRX";
         decimals = 9;
-        totalSupply = 5000000000000000000;
+        totalSupply = 1200000000000000000;
         balances[msg.sender] = totalSupply;
         emit Transfer(address(0), msg.sender, totalSupply);
     }
