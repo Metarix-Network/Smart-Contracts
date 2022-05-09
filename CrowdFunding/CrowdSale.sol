@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at BscScan.com on 2022-05-09
+*/
+
 pragma solidity 0.6.12;
 
 // SPDX-License-Identifier: UNLICENSED
@@ -63,11 +67,12 @@ contract MetarixContract is Ownable {
   uint256 public immutable saleStartTime; // start sale time
   uint256 public immutable saleEndTime; // end sale time
   uint256 public totalBnbReceived; // total bnd received
-  uint public totalparticipants; // total participants in ido
+  uint public totalBuys; // total buys in ido
   address payable public projectOwner; // project Owner
   
   // CONSTRUCTOR  
   constructor(uint _maxCap, uint256 _saleStartTime, uint256 _saleEndTime, address payable _projectOwner) public {
+    require(_projectOwner != address(0), "Project owner is required!");
     maxCap = _maxCap;
     saleStartTime = _saleStartTime;
     saleEndTime = _saleEndTime;    
@@ -96,7 +101,7 @@ contract MetarixContract is Ownable {
         // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
         (bool success, ) = recipient.call{ value: amount }("");
         require(success, "Address: unable to send value, recipient may have reverted");
-        totalparticipants +=1;
+        totalBuys +=1;
     }
  
   // send bnb to the contract address
@@ -104,7 +109,7 @@ contract MetarixContract is Ownable {
 
      require(now >= saleStartTime, "The sale is not started yet "); // solhint-disable
      require(now <= saleEndTime, "The sale is closed"); // solhint-disable
-     require(totalBnbReceived + msg.value <= maxCap, "buyTokens: purchase would exceed max cap");
+     require(totalBnbReceived + msg.value <= maxCap*10**18, "buyTokens: purchase would exceed max cap");
 
       totalBnbReceived += msg.value;
       sendValue(projectOwner, address(this).balance);      
