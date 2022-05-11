@@ -1,10 +1,10 @@
 /**
- *Submitted for verification at BscScan.com on 2022-05-09
+ *Submitted for verification at BscScan.com on 2022-05-11
 */
 
-pragma solidity 0.6.12;
-
 // SPDX-License-Identifier: UNLICENSED
+
+pragma solidity 0.6.12;
 
 contract Context {
     // Empty internal constructor, to prevent people from mistakenly deploying
@@ -73,7 +73,7 @@ contract MetarixContract is Ownable {
   // CONSTRUCTOR  
   constructor(uint _maxCap, uint256 _saleStartTime, uint256 _saleEndTime, address payable _projectOwner) public {
     require(_projectOwner != address(0), "Project owner is required!");
-    maxCap = _maxCap;
+    maxCap = _maxCap*10**18;
     saleStartTime = _saleStartTime;
     saleEndTime = _saleEndTime;    
     projectOwner = _projectOwner;   
@@ -109,7 +109,7 @@ contract MetarixContract is Ownable {
 
      require(now >= saleStartTime, "The sale is not started yet "); // solhint-disable
      require(now <= saleEndTime, "The sale is closed"); // solhint-disable
-     require(totalBnbReceived + msg.value <= maxCap*10**18, "buyTokens: purchase would exceed max cap");
+     require(totalBnbReceived + msg.value <= maxCap, "buyTokens: purchase would exceed max cap");
 
       totalBnbReceived += msg.value;
       sendValue(projectOwner, address(this).balance);      
