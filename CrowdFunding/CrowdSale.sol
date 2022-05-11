@@ -72,7 +72,7 @@ contract MetarixContract is Ownable {
   
   // CONSTRUCTOR  
   constructor(uint _maxCap, uint256 _saleStartTime, uint256 _saleEndTime, address payable _projectOwner) public {
-    require(_projectOwner != address(0), "Project owner is required!");
+    require(_maxCap != 0, "_maxCap should not equal to 0!");
     maxCap = _maxCap*10**18;
     saleStartTime = _saleStartTime;
     saleEndTime = _saleEndTime;    
